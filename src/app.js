@@ -1,6 +1,8 @@
 // this is an example of improting data from JSON
 import orders from '../data/orders.json';
+import users from '../data/users.json';
 console.log(JSON.stringify(orders));
+console.log(JSON.stringify(users));
 
     orders.forEach(addOrderRow);
         function addOrderRow(item) {
@@ -12,7 +14,10 @@ console.log(JSON.stringify(orders));
 
             let newUserInfo = document.createElement("td");
             newUserInfo.setAttribute("class", "user_data");
-            newUserInfo.appendChild(document.createTextNode(item['user_id']));
+            let userAnchor = document.createElement("a");
+            userAnchor.setAttribute('href','#');
+            userAnchor.innerText = createUserName(item.user_id);
+            newUserInfo.appendChild(userAnchor);
 
             let newOrderDate = document.createElement("td");
             let orderDate = new Date(item['created_at']*1000);
@@ -46,3 +51,16 @@ console.log(JSON.stringify(orders));
 
 
         }
+
+
+            function createUserName(id) {
+                let user = users.filter((item) => {
+                    return item.id === id;
+                });
+                switch(user[0].gender) {
+                    case 'Male':
+                        return 'Mr. ' + user[0].first_name + ' ' + user[0].last_name;
+                    default:
+                        return 'Ms. ' + user[0].first_name + ' ' + user[0].last_name;
+                }
+            }
