@@ -1,8 +1,10 @@
 // this is an example of improting data from JSON
 import orders from '../data/orders.json';
 import users from '../data/users.json';
+import companies from '../data/companies.json';
 console.log(JSON.stringify(orders));
 console.log(JSON.stringify(users));
+console.log(JSON.stringify(companies));
 
     orders.forEach(addOrderRow);
         function addOrderRow(item) {
@@ -14,10 +16,7 @@ console.log(JSON.stringify(users));
 
             let newUserInfo = document.createElement("td");
             newUserInfo.setAttribute("class", "user_data");
-            let userAnchor = document.createElement("a");
-            userAnchor.setAttribute('href','#');
-            userAnchor.innerText = createUserName(item.user_id);
-            newUserInfo.appendChild(userAnchor);
+            createUserName(item.user_id, newUserInfo);
 
             let newOrderDate = document.createElement("td");
             let orderDate = new Date(item['created_at']*1000);
@@ -53,14 +52,65 @@ console.log(JSON.stringify(users));
         }
 
 
-            function createUserName(id) {
+            function createUserName(id, parent) {
+
+                let userAnchor = document.createElement("a");
+                userAnchor.setAttribute('href','#')
+
                 let user = users.filter((item) => {
                     return item.id === id;
                 });
                 switch(user[0].gender) {
                     case 'Male':
-                        return 'Mr. ' + user[0].first_name + ' ' + user[0].last_name;
+                        userAnchor.innerText = 'Mr. ' + user[0].first_name + ' ' + user[0].last_name;
                     default:
-                        return 'Ms. ' + user[0].first_name + ' ' + user[0].last_name;
+                        userAnchor.innerText = 'Ms. ' + user[0].first_name + ' ' + user[0].last_name;
                 }
+
+                parent.appendChild(userAnchor);
+
+                let extendedUserInfo = document.createElement('div');
+                extendedUserInfo.setAttribute("class","user-details");
+                extendedUserInfo.style.display = 'none';
+
+                let birthday = document.createElement('p');
+                birthday.innerText = `Birthday: ${new Date(user[0].birthday*1000).toLocaleString('en-US')}`;
+                extendedUserInfo.appendChild(birthday);
+
+                let photo = document.createElement('p');
+                let image = document.createElement('img');
+                image.src = user[0].avatar;
+                image.width = '100';
+                photo.appendChild(image);
+                extendedUserInfo.appendChild(photo);
+
+                function getCompanyObj(id) {
+                    let company = companies.filter((item) => {
+                        return item.id === id;
+                    });
+                    return company[0];
+                }
+
+                let company = getCompanyObj(user[0].company_id)?getCompanyObj(user[0].company_id):{};
+                let companyName = document.createElement('p');
+                companyName.innerHTML = `Company: <a href="${company.url}" target="_blank">${company.title}</a>`;
+
+                extendedUserInfo.appendChild(companyName);
+
+                let industry = document.createElement('p');
+                industry.innerText = `Industry: ${company.industry} / ${company.sector}`;
+                extendedUserInfo.appendChild(industry);
+
+                parent.appendChild(extendedUserInfo);
+
+                function clickHandler(event) {
+                    event.preventDefault();
+                    if (extendedUserInfo.style.display === 'none') {
+                        extendedUserInfo.style.display = 'block';
+                    } else {
+                        extendedUserInfo.style.display = 'none';
+                    }
+                };
+                userAnchor.addEventListener('click', clickHandler);
+
             }
