@@ -4,6 +4,11 @@ import users from '../data/users.json';
 import companies from '../data/companies.json';
 
 export default (function () {
+    let currentOrdersList = orders;
+
+    let usersMap = {};
+    users.forEach(user => usersMap[user['id']] = user);
+
     orders.forEach(addOrderRow);
     function addOrderRow(item) {
         let newTr = document.createElement("tr");
@@ -53,14 +58,12 @@ export default (function () {
         let userAnchor = document.createElement("a");
         userAnchor.setAttribute('href','#');
 
-        let user = users.filter((item) => {
-            return item.id === id;
-        });
-        switch(user[0].gender) {
-            case 'Male':
-                userAnchor.innerText = 'Mr. ' + user[0].first_name + ' ' + user[0].last_name;
-            default:
-                userAnchor.innerText = 'Ms. ' + user[0].first_name + ' ' + user[0].last_name;
+        let user = usersMap[id];
+
+        if (user.gender === 'Male') {
+            userAnchor.innerText = 'Mr. ' + user.first_name + ' ' + user.last_name;
+        } else {
+            userAnchor.innerText = 'Ms. ' + user.first_name + ' ' + user.last_name;
         }
 
         parent.appendChild(userAnchor);
@@ -70,12 +73,12 @@ export default (function () {
         extendedUserInfo.style.display = 'none';
 
         let birthday = document.createElement('p');
-        birthday.innerText = `Birthday: ${new Date(user[0].birthday*1000).toLocaleString('en-US')}`;
+        birthday.innerText = `Birthday: ${new Date(user.birthday*1000).toLocaleString('en-US')}`;
         extendedUserInfo.appendChild(birthday);
 
         let photo = document.createElement('p');
         let image = document.createElement('img');
-        image.src = user[0].avatar;
+        image.src = user.avatar;
         image.width = '100';
         photo.appendChild(image);
         extendedUserInfo.appendChild(photo);
@@ -87,7 +90,7 @@ export default (function () {
             return company[0];
         }
 
-        let company = getCompanyObj(user[0].company_id)?getCompanyObj(user[0].company_id):{};
+        let company = getCompanyObj(user.company_id)?getCompanyObj(user.company_id):{};
         let companyName = document.createElement('p');
         companyName.innerHTML = `Company: <a href="${company.url}" target="_blank">${company.title}</a>`;
 
@@ -120,9 +123,6 @@ export default (function () {
         }
         return 0;
     });
-
-    let usersMap = {};
-    users.forEach(user => usersMap[user['id']] = user);
 
     let arrSortByName = orders.slice().sort(function (a, b) {
         if (usersMap[a.user_id].first_name + usersMap[a.user_id].last_name > usersMap[b.user_id].first_name + usersMap[b.user_id].last_name) {
@@ -184,6 +184,7 @@ export default (function () {
         addSpanLabel(event.target);
         document.getElementsByTagName("tbody")[0].innerHTML = '';
         sortMap[event.target.id].forEach(addOrderRow);
+        currentOrdersList = sortMap[event.target.id];
     }
 
     function addSpanLabel(item) {
@@ -211,12 +212,17 @@ export default (function () {
             return (values[half - 1] + values[half]) / 2.0;
     }
 
+    function normalizeMoneyString(value) {
+        return new Intl.NumberFormat('en-EN', { style: 'currency', currency: 'USD' }).format(value);
+    }
+
     function setStatistics(statisticsOrders) {
-        document.getElementById('ordersCount').innerText = statisticsOrders.length;
+        document.getElementById('ordersCount').innerText = statisticsOrders.length > 0 ? statisticsOrders.length : 'n/a';
         let ordersTotal = statisticsOrders.reduce((total, item) => (total + (+item['total'])), 0);
-        document.getElementById('ordersTotal').innerText = normalizeMoneyString(ordersTotal);
-        document.getElementById('medianValue').innerText = normalizeMoneyString(medianCalculating(statisticsOrders.map(item => +item['total'])));
-        document.getElementById('averageCheck').innerText = normalizeMoneyString(ordersTotal / statisticsOrders.length);
+        document.getElementById('ordersTotal').innerText = ordersTotal > 0 ? normalizeMoneyString(ordersTotal) : 'n/a';
+        let medianValue = medianCalculating(statisticsOrders.map(item => +item['total']));
+        document.getElementById('medianValue').innerText = medianValue > 0 ?  normalizeMoneyString(medianValue) : 'n/a';
+        document.getElementById('averageCheck').innerText = statisticsOrders.length > 0 ? normalizeMoneyString(ordersTotal / statisticsOrders.length) : 'n/a';
         let femaleCount = 0;
         let femaleOrdersTotal = statisticsOrders.reduce((total, item) => {
             let itemTotal = 0;
@@ -226,7 +232,7 @@ export default (function () {
             }
             return total + itemTotal;
         }, 0);
-        document.getElementById('averageCheckFemale').innerText = normalizeMoneyString(femaleOrdersTotal / femaleCount);
+        document.getElementById('averageCheckFemale').innerText = femaleCount > 0 ? normalizeMoneyString(femaleOrdersTotal / femaleCount) : 'n/a';
         let maleCount = 0;
         let maleOrdersTotal = statisticsOrders.reduce((total, item) => {
             let itemTotal = 0;
@@ -236,13 +242,35 @@ export default (function () {
             }
             return total + itemTotal;
         }, 0);
-        document.getElementById('averageCheckMale').innerText = normalizeMoneyString(maleOrdersTotal / maleCount);
-
-    }
-
-    function normalizeMoneyString(value) {
-        return new Intl.NumberFormat('en-EN', { style: 'currency', currency: 'USD' }).format(value);
+        document.getElementById('averageCheckMale').innerText = maleCount > 0 ? normalizeMoneyString(maleOrdersTotal / maleCount) : 'n/a';
     }
 
     setStatistics(orders);
+
+    document.getElementById('search').addEventListener('input', function (event) { // input change
+        let relevantOrders = currentOrdersList.filter(order => {
+            return order['transaction_id'].indexOf(event.target.value) !== -1
+                || order['total'].indexOf(event.target.value) !== -1
+                || order['card_type'].indexOf(event.target.value) !== -1
+                || order['order_country'].indexOf(event.target.value) !== -1
+                || order['order_country'].indexOf(event.target.value) !== -1
+                || order['order_ip'].indexOf(event.target.value) !== -1
+                || usersMap[order['user_id']]['first_name'].indexOf(event.target.value) !== -1
+                || usersMap[order['user_id']]['last_name'].indexOf(event.target.value) !== -1;
+        });
+        document.getElementsByTagName("tbody")[0].innerHTML = '';
+        if (relevantOrders.length === 0) {
+            let newTr = document.createElement("tr");
+            let newTd = document.createElement("td");
+            newTd.appendChild(document.createTextNode('Nothing found'));
+            newTd.setAttribute('colspan', 7);
+            newTd.setAttribute('style', 'text-align:center');
+            newTr.appendChild(newTd);
+            let currentTableBody = document.getElementsByTagName("tbody")[0];
+            currentTableBody.appendChild(newTr);
+        } else {
+            relevantOrders.forEach(addOrderRow);
+        }
+        setStatistics(relevantOrders);
+    });
 }());
