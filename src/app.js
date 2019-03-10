@@ -195,4 +195,54 @@ export default (function () {
         }
         item.innerHTML += "<span>&#8595;</span>";
     }
+
+    function medianCalculating(values){
+        values.sort(function(a,b){
+            return a-b;
+        });
+
+        if(values.length ===0) return 0;
+
+        let half = Math.floor(values.length / 2);
+
+        if (values.length % 2)
+            return values[half];
+        else
+            return (values[half - 1] + values[half]) / 2.0;
+    }
+
+    function setStatistics(statisticsOrders) {
+        document.getElementById('ordersCount').innerText = statisticsOrders.length;
+        let ordersTotal = statisticsOrders.reduce((total, item) => (total + (+item['total'])), 0);
+        document.getElementById('ordersTotal').innerText = normalizeMoneyString(ordersTotal);
+        document.getElementById('medianValue').innerText = normalizeMoneyString(medianCalculating(statisticsOrders.map(item => +item['total'])));
+        document.getElementById('averageCheck').innerText = normalizeMoneyString(ordersTotal / statisticsOrders.length);
+        let femaleCount = 0;
+        let femaleOrdersTotal = statisticsOrders.reduce((total, item) => {
+            let itemTotal = 0;
+            if (usersMap[item['user_id']]['gender'] === 'Female') {
+                itemTotal = +item['total'];
+                femaleCount++;
+            }
+            return total + itemTotal;
+        }, 0);
+        document.getElementById('averageCheckFemale').innerText = normalizeMoneyString(femaleOrdersTotal / femaleCount);
+        let maleCount = 0;
+        let maleOrdersTotal = statisticsOrders.reduce((total, item) => {
+            let itemTotal = 0;
+            if (usersMap[item['user_id']]['gender'] === 'Male') {
+                itemTotal = +item['total'];
+                maleCount++;
+            }
+            return total + itemTotal;
+        }, 0);
+        document.getElementById('averageCheckMale').innerText = normalizeMoneyString(maleOrdersTotal / maleCount);
+
+    }
+
+    function normalizeMoneyString(value) {
+        return new Intl.NumberFormat('en-EN', { style: 'currency', currency: 'USD' }).format(value);
+    }
+
+    setStatistics(orders);
 }());
